@@ -343,7 +343,7 @@ void XtcReaderActivity::loop() {
 
     if (!overviewModeZoomedIn) {
       // Overview state: long press = enter zoom, short press = chapter skip.
-      if (longPrev || longNext) {
+      if (!overviewLongPressHandled && (longPrev || longNext)) {
         overviewLongPressHandled = true;
         overviewModeZoomedIn = true;
         recordCurrentPageReadingTime("overview_zoom_in");
@@ -379,7 +379,7 @@ void XtcReaderActivity::loop() {
       }
     } else {
       // Zoom state: long press = exit zoom, short press = page turn.
-      if (longPrev || longNext) {
+      if (!overviewLongPressHandled && (longPrev || longNext)) {
         overviewLongPressHandled = true;
         overviewModeZoomedIn = false;
         const int chapterIdx = findChapterForPage(currentPage);
