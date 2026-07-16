@@ -62,6 +62,7 @@ class XtcReaderActivity final : public Activity {
   void deleteBookCache();
   void onReaderMenuConfirm(int action);
   bool executeLongPressBackAction();
+  int findChapterForPage(uint32_t page) const;
 
  public:
   explicit XtcReaderActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, std::unique_ptr<Xtc> xtc)

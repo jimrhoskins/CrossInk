@@ -274,15 +274,37 @@ void XtcReaderActivity::loop() {
       const bool shouldRecordForwardRead =
           nextLongPressed && forwardPageReadElapsed(forwardReadSeconds, "front_long_press");
       recordCurrentPageReadingTime("front_long_press");
-      if (prevLongPressed) {
-        currentPage = currentPage >= 10 ? currentPage - 10 : 0;
-      } else {
-        currentPage += 10;
-        if (currentPage >= xtc->getPageCount()) {
-          currentPage = xtc->getPageCount();
+
+      const int chapterIdx = findChapterForPage(currentPage);
+      if (chapterIdx >= 0) {
+        const auto chapters = xtc->getChapters();
+        if (prevLongPressed) {
+          if (currentPage > chapters[chapterIdx].startPage) {
+            currentPage = chapters[chapterIdx].startPage;
+          } else if (chapterIdx > 0) {
+            currentPage = chapters[chapterIdx - 1].startPage;
+          }
+        } else {
+          if (chapterIdx + 1 < static_cast<int>(chapters.size())) {
+            currentPage = chapters[chapterIdx + 1].startPage;
+            if (shouldRecordForwardRead) {
+              recordForwardPageTurn(forwardReadSeconds);
+            }
+          } else {
+            onGoHome();
+          }
         }
-        if (shouldRecordForwardRead) {
-          recordForwardPageTurn(forwardReadSeconds);
+      } else {
+        if (prevLongPressed) {
+          currentPage = currentPage >= 10 ? currentPage - 10 : 0;
+        } else {
+          currentPage += 10;
+          if (currentPage >= xtc->getPageCount()) {
+            currentPage = xtc->getPageCount();
+          }
+          if (shouldRecordForwardRead) {
+            recordForwardPageTurn(forwardReadSeconds);
+          }
         }
       }
       requestUpdate();
@@ -328,12 +350,59 @@ void XtcReaderActivity::loop() {
       !fromTilt && !powerPageTurn && mappedInput.getHeldTime() > ReaderUtils::SKIP_HOLD_MS &&
       (fromSideBtn ? SETTINGS.sideButtonLongPress == CrossPointSettings::SIDE_LONG_PRESS::SIDE_LONG_CHAPTER_SKIP
                    : SETTINGS.longPressButtonBehavior == CrossPointSettings::CHAPTER_SKIP);
-  const int skipAmount = skipPages ? 10 : 1;
+
+  if (skipPages) {
+    const int chapterIdx = findChapterForPage(currentPage);
+    if (chapterIdx >= 0) {
+      const auto chapters = xtc->getChapters();
+      if (prevTriggered) {
+        recordCurrentPageReadingTime("chapter_back");
+        if (currentPage > chapters[chapterIdx].startPage) {
+          currentPage = chapters[chapterIdx].startPage;
+        } else if (chapterIdx > 0) {
+          currentPage = chapters[chapterIdx - 1].startPage;
+        }
+      } else if (nextTriggered) {
+        uint32_t forwardReadSeconds = 0;
+        const bool shouldRecordForwardRead = forwardPageReadElapsed(forwardReadSeconds, "chapter_forward");
+        recordCurrentPageReadingTime("chapter_forward");
+        if (chapterIdx + 1 < static_cast<int>(chapters.size())) {
+          currentPage = chapters[chapterIdx + 1].startPage;
+        } else {
+          currentPage = xtc->getPageCount();
+        }
+        if (shouldRecordForwardRead) {
+          recordForwardPageTurn(forwardReadSeconds);
+        }
+      }
+      requestUpdate();
+      return;
+    }
+    // No chapters: fall through to 10-page skip
+    const int skipAmount = 10;
+    if (prevTriggered) {
+      recordCurrentPageReadingTime("page_back");
+      currentPage = currentPage >= static_cast<uint32_t>(skipAmount) ? currentPage - skipAmount : 0;
+    } else if (nextTriggered) {
+      uint32_t forwardReadSeconds = 0;
+      const bool shouldRecordForwardRead = forwardPageReadElapsed(forwardReadSeconds, "page_forward");
+      recordCurrentPageReadingTime("page_forward");
+      currentPage += skipAmount;
+      if (currentPage >= xtc->getPageCount()) {
+        currentPage = xtc->getPageCount();
+      }
+      if (shouldRecordForwardRead) {
+        recordForwardPageTurn(forwardReadSeconds);
+      }
+    }
+    requestUpdate();
+    return;
+  }
 
   if (prevTriggered) {
     recordCurrentPageReadingTime("page_back");
-    if (currentPage >= static_cast<uint32_t>(skipAmount)) {
-      currentPage -= skipAmount;
+    if (currentPage >= 1) {
+      currentPage -= 1;
     } else {
       currentPage = 0;
     }
@@ -342,9 +411,9 @@ void XtcReaderActivity::loop() {
     uint32_t forwardReadSeconds = 0;
     const bool shouldRecordForwardRead = forwardPageReadElapsed(forwardReadSeconds, "page_forward");
     recordCurrentPageReadingTime("page_forward");
-    currentPage += skipAmount;
+    currentPage += 1;
     if (currentPage >= xtc->getPageCount()) {
-      currentPage = xtc->getPageCount();  // Allow showing "End of book"
+      currentPage = xtc->getPageCount();
     }
     if (shouldRecordForwardRead) {
       recordForwardPageTurn(forwardReadSeconds);
@@ -486,6 +555,19 @@ float XtcReaderActivity::getCurrentBookProgressPercent() const {
   const uint32_t pageCount = xtc->getPageCount();
   const uint32_t clampedPage = currentPage >= pageCount ? pageCount - 1 : currentPage;
   return static_cast<float>(xtc->calculateProgress(clampedPage));
+}
+
+int XtcReaderActivity::findChapterForPage(uint32_t page) const {
+  if (!xtc || !xtc->hasChapters()) {
+    return -1;
+  }
+  const auto chapters = xtc->getChapters();
+  for (size_t i = 0; i < chapters.size(); i++) {
+    if (page >= chapters[i].startPage && page <= chapters[i].endPage) {
+      return static_cast<int>(i);
+    }
+  }
+  return 0;
 }
 
 void XtcReaderActivity::openChapterSelection() {
