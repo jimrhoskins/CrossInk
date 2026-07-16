@@ -177,3 +177,34 @@ Examples include:
 - Side-button shortcuts for changing font size or font family
 
 For the full controls reference, see [Controls](./controls.md).
+
+## Chapter Navigation (XTC Books)
+
+For books with chapters (XTC format), long-pressing a front button or side button jumps to the next or previous chapter start.
+
+If a book has no chapter data, long-press falls back to skipping 10 pages.
+
+## Overview Mode (XTC Books)
+
+Overview Mode gives you a chapter-level browsing experience for XTC books with chapters.
+
+When enabled:
+
+- **Short press** skips to the first page of the next or previous chapter (or exits the book on the last chapter).
+- **Long press** zooms into the current chapter and switches to normal page-by-page reading.
+
+In page-by-page mode, **long press** returns you to the first page of the current chapter (zoomed out).
+
+A toast message shows "Overview" or "Reading" when switching modes.
+
+### Enabling Overview Mode
+
+Overview Mode can be enabled globally from **Settings > Controls > Overview Mode**.
+
+You can also enable it per-book from the in-book reader menu. Per-book overrides use three values:
+
+- **Off** — the book always uses the global setting.
+- **On** — the book always uses Overview Mode regardless of the global setting.
+- **Use global** — follow the global setting (default).
+
+When per-book Override is Off or On, the menu shows "Disable Overview Mode" / "Enable Overview Mode" respectively. When set to Use global, it shows "Disable/Enable Overview Mode" based on the current global state.

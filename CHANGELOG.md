@@ -1,3 +1,17 @@
+## [v1.5.0] - 2026-07-16
+
+### Added
+
+- XTC Reader chapter skip navigation — long-press front or side buttons to jump between chapters for books with chapter data. Falls back to 10-page skip when no chapters are available.
+- Overview Mode for XTC books — chapter-level browsing where short clicks jump between chapter first pages and long press zooms into page-by-page reading. Global setting available in Settings > Controls, with per-book override from the in-book reader menu.
+
+### Fixed
+
+- X3 sleep screen ghosting from upstream KrossPop ghosting fix.
+- Simulator: Shift modifier for long-press injection — Shift+button gives instant 2000ms held time.
+
+---
+
 ## [v1.4.0] - 2026-07-10
 
 ### Added

@@ -31,6 +31,12 @@ Note: Even though some actions assigned to the front buttons could be used globa
 - Orientation aware
 - Long-press action
 
+### Overview Mode (XTC Books)
+
+- Overview Mode toggle — chapter-level browsing for books with chapters
+
+See [Reader Features](./reader-features.md#overview-mode-xtc-books) for full details.
+
 ## Side Button Long-press Action
 
 When set to `Change Font Size`, hold a side button for about 2 seconds:

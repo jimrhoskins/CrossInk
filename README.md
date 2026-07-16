@@ -47,6 +47,8 @@ My goal with this fork was to maintain the core Crosspoint firmware while integr
 - Reading [progress sync](./docs/nearby-position-sync.md) between two CrossInk devices.
 - Added customizable Auto Page Turn Interval (anything between 5-120 seconds).
 - Added ability to view Recent Books as a 3x3 grid view.
+- XTC Reader: Chapter skip via long-press (front or side buttons) for quick chapter navigation.
+- XTC Reader: Overview Mode for chapter-level browsing — short clicks jump between chapter first-pages, long press zooms into page-by-page reading. Per-book override available from the in-book menu.
 - To view a more detailed list for each version, visit the [releases](https://github.com/uxjulia/CrossInk/releases) page to read release notes.
 
 ---
