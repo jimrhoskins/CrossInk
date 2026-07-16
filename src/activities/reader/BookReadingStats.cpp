@@ -50,16 +50,22 @@ namespace {
 // Binary layout v5 (73 bytes):
 //   [0-68]   v4 fields
 //   [69-72]  estimatedTimeLeftSeconds  uint32_t LE, 0 means unavailable
-static constexpr uint8_t STATS_FILE_VERSION = 5;
+//
+// Binary layout v6 (74 bytes):
+//   [0-72]   v5 fields
+//   [73]     overviewModePerBook      uint8_t (0=off, 1=on, 2=use global)
+static constexpr uint8_t STATS_FILE_VERSION = 6;
 static constexpr uint8_t STATS_FILE_VERSION_V2 = 2;
 static constexpr uint8_t STATS_FILE_VERSION_V1 = 1;
 static constexpr uint8_t STATS_FILE_VERSION_V3 = 3;
 static constexpr uint8_t STATS_FILE_VERSION_V4 = 4;
+static constexpr uint8_t STATS_FILE_VERSION_V5 = 5;
 static constexpr int STATS_FILE_SIZE_V1 = 11;
 static constexpr int STATS_FILE_SIZE_V2 = 12;
 static constexpr int STATS_FILE_SIZE_V3 = 16;
 static constexpr int STATS_FILE_SIZE_V4 = 69;
-static constexpr int STATS_FILE_SIZE = 73;
+static constexpr int STATS_FILE_SIZE_V5 = 73;
+static constexpr int STATS_FILE_SIZE = 74;
 static constexpr uint16_t MAX_PACE_SAMPLE_COUNT = 1000;
 static constexpr uint8_t FLAG_START_DATE_MANUAL = 1u << 0;
 static constexpr uint8_t FLAG_FINISHED_DATE_MANUAL = 1u << 1;
@@ -164,36 +170,36 @@ BookReadingStats BookReadingStats::load(const std::string& cachePath) {
     return stats;
   }
 
-  if (n != STATS_FILE_SIZE && n != STATS_FILE_SIZE_V4) {
-    LOG_DBG("STATS", "Stats missing or version mismatch, starting fresh");
+  // v4+ share the same prefix layout. v5 adds estimatedTimeLeftSeconds, v6 adds overviewModePerBook.
+  if ((n == STATS_FILE_SIZE_V4 && data[0] == STATS_FILE_VERSION_V4) ||
+      (n == STATS_FILE_SIZE_V5 && data[0] == STATS_FILE_VERSION_V5) ||
+      (n == STATS_FILE_SIZE && data[0] == STATS_FILE_VERSION)) {
+    readCommonStats(data, stats);
+    stats.isCompleted = data[11] != 0;
+    stats.avgSecondsPerForwardPage = readLe16(data, 12);
+    stats.paceSampleCount = readLe16(data, 14);
+    const uint8_t flags = data[16];
+    stats.startDateManual = (flags & FLAG_START_DATE_MANUAL) != 0;
+    stats.finishedDateManual = (flags & FLAG_FINISHED_DATE_MANUAL) != 0;
+    stats.startDate = readDate(data, 17);
+    stats.finishedDate = readDate(data, 21);
+    for (size_t i = 0; i < stats.timeOfDaySeconds.size(); ++i) {
+      stats.timeOfDaySeconds[i] = readLe32(data, 25 + static_cast<int>(i) * 4);
+    }
+    for (size_t i = 0; i < stats.dayOfWeekSeconds.size(); ++i) {
+      stats.dayOfWeekSeconds[i] = readLe32(data, 41 + static_cast<int>(i) * 4);
+    }
+    if (n >= STATS_FILE_SIZE_V5) {
+      stats.estimatedTimeLeftSeconds = readLe32(data, 69);
+    }
+    if (n >= STATS_FILE_SIZE) {
+      const uint8_t raw = data[73];
+      stats.overviewModePerBook = raw <= 2 ? raw : 2;
+    }
     return stats;
   }
-  if (n == STATS_FILE_SIZE_V4 && data[0] != STATS_FILE_VERSION_V4) {
-    LOG_DBG("STATS", "Stats missing or version mismatch, starting fresh");
-    return stats;
-  }
-  if (n == STATS_FILE_SIZE && data[0] != STATS_FILE_VERSION) {
-    LOG_DBG("STATS", "Stats missing or version mismatch, starting fresh");
-    return stats;
-  }
-  readCommonStats(data, stats);
-  stats.isCompleted = data[11] != 0;
-  stats.avgSecondsPerForwardPage = readLe16(data, 12);
-  stats.paceSampleCount = readLe16(data, 14);
-  const uint8_t flags = data[16];
-  stats.startDateManual = (flags & FLAG_START_DATE_MANUAL) != 0;
-  stats.finishedDateManual = (flags & FLAG_FINISHED_DATE_MANUAL) != 0;
-  stats.startDate = readDate(data, 17);
-  stats.finishedDate = readDate(data, 21);
-  for (size_t i = 0; i < stats.timeOfDaySeconds.size(); ++i) {
-    stats.timeOfDaySeconds[i] = readLe32(data, 25 + static_cast<int>(i) * 4);
-  }
-  for (size_t i = 0; i < stats.dayOfWeekSeconds.size(); ++i) {
-    stats.dayOfWeekSeconds[i] = readLe32(data, 41 + static_cast<int>(i) * 4);
-  }
-  if (n == STATS_FILE_SIZE) {
-    stats.estimatedTimeLeftSeconds = readLe32(data, 69);
-  }
+
+  LOG_DBG("STATS", "Stats missing or version mismatch, starting fresh");
   return stats;
 }
 
@@ -269,6 +275,7 @@ void BookReadingStats::save(const std::string& cachePath) const {
     writeLe32(data, 41 + static_cast<int>(i) * 4, dayOfWeekSeconds[i]);
   }
   writeLe32(data, 69, estimatedTimeLeftSeconds);
+  data[73] = overviewModePerBook;
   f.write(data, STATS_FILE_SIZE);
   f.close();
 }

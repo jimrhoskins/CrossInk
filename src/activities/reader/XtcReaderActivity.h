@@ -31,6 +31,10 @@ class XtcReaderActivity final : public Activity {
   bool longPowerPageTurnHandled = false;
   bool frontButtonLongPressHandled = false;
   bool longPressBackHandled = false;
+  // Overview mode state
+  bool overviewModeActive = false;
+  bool overviewModeZoomedIn = false;
+  bool overviewLongPressHandled = false;
   // Next-book suggestion menu for the End-of-Book screen
   EndOfBookOptions endOfBookOptions;
 
@@ -63,6 +67,8 @@ class XtcReaderActivity final : public Activity {
   void onReaderMenuConfirm(int action);
   bool executeLongPressBackAction();
   int findChapterForPage(uint32_t page) const;
+  bool isOverviewModeEffective() const;
+  void toggleOverviewMode();
 
  public:
   explicit XtcReaderActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, std::unique_ptr<Xtc> xtc)

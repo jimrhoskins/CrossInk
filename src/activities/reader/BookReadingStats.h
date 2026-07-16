@@ -5,7 +5,7 @@
 
 #include "ReadingStatsUtils.h"
 
-// Per-book reading statistics, persisted to cachePath/stats_v5.bin.
+// Per-book reading statistics, persisted to cachePath/stats_v6.bin.
 struct BookReadingStats {
   uint16_t sessionCount = 0;              // Total times this book was opened
   uint32_t totalReadingSeconds = 0;       // Accumulated reading time in seconds
@@ -20,16 +20,18 @@ struct BookReadingStats {
   ReadingStatsDate finishedDate;          // Manual or auto-finished date on X3
   std::array<uint32_t, READING_TIME_BUCKET_COUNT> timeOfDaySeconds{};
   std::array<uint32_t, READING_DAY_OF_WEEK_COUNT> dayOfWeekSeconds{};
+  // Per-book overview mode override: 0 = off, 1 = on, 2 = use global setting
+  uint8_t overviewModePerBook = 2;
 
-  // Loads stats from cachePath/stats_v5.bin, with fallback reads from the
+  // Loads stats from cachePath/stats_v6.bin, with fallback reads from the
   // previous versioned filename and legacy cachePath/stats.bin. Returns
   // default-constructed stats if no compatible file exists.
   static BookReadingStats load(const std::string& cachePath);
 
-  // Saves stats to cachePath/stats_v5.bin.
+  // Saves stats to cachePath/stats_v6.bin.
   void save(const std::string& cachePath) const;
 
-  // Deletes cachePath/stats_v5.bin, the previous versioned filename, and legacy
+  // Deletes cachePath/stats_v6.bin, the previous versioned filename, and legacy
   // cachePath/stats.bin. Missing files are treated as success.
   static bool remove(const std::string& cachePath);
 

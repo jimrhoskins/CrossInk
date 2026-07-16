@@ -436,6 +436,8 @@ class CrossPointSettings {
   uint8_t longPressMenuAction = LONG_MENU_OFF;
   // Long-press Back quick action in reader (defaults to the historical file browser shortcut)
   uint8_t longPressBackAction = LONG_MENU_FILE_BROWSER;
+  // Overview mode for XTC reader — chapter-level browsing with zoom-in (0 = off, 1 = on)
+  uint8_t overviewMode = 0;
   // Tilt-based page turning (X3 only — requires QMI8658 IMU)
   uint8_t tiltPageTurn = TILT_OFF;
   uint8_t tiltPageTurnDirection = TILT_LEFT_RIGHT;

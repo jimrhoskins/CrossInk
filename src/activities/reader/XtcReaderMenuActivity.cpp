@@ -18,21 +18,27 @@ constexpr int kTitleLineGap = 1;
 }  // namespace
 
 XtcReaderMenuActivity::XtcReaderMenuActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, std::string title,
-                                             const bool hasChapters, const bool isBookCompleted)
+                                             const bool hasChapters, const bool isBookCompleted,
+                                             const bool overviewModeEnabled)
     : Activity("XtcReaderMenu", renderer, mappedInput),
       title(std::move(title)),
-      items(buildMenuItems(hasChapters, isBookCompleted)) {}
+      items(buildMenuItems(hasChapters, isBookCompleted, overviewModeEnabled)) {}
 
 std::vector<XtcReaderMenuActivity::MenuItem> XtcReaderMenuActivity::buildMenuItems(const bool hasChapters,
-                                                                                   const bool isBookCompleted) {
+                                                                                   const bool isBookCompleted,
+                                                                                   const bool overviewModeEnabled) {
   std::vector<MenuItem> menuItems;
-  menuItems.reserve(5);
+  menuItems.reserve(6);
   if (hasChapters) {
     menuItems.push_back({MenuAction::SELECT_CHAPTER, StrId::STR_SELECT_CHAPTER});
   }
   menuItems.push_back({MenuAction::READING_STATS, StrId::STR_READING_STATS});
   menuItems.push_back(
       {MenuAction::TOGGLE_COMPLETED, isBookCompleted ? StrId::STR_MARK_UNFINISHED : StrId::STR_MARK_FINISHED});
+  if (hasChapters) {
+    menuItems.push_back({MenuAction::TOGGLE_OVERVIEW_MODE,
+                         overviewModeEnabled ? StrId::STR_OVERVIEW_MODE_OFF : StrId::STR_OVERVIEW_MODE_ON});
+  }
   menuItems.push_back({MenuAction::DELETE_STATS, StrId::STR_DELETE_BOOK_STATS});
   menuItems.push_back({MenuAction::DELETE_CACHE, StrId::STR_DELETE_CACHE});
   return menuItems;

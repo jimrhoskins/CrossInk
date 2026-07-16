@@ -74,6 +74,10 @@ void XtcReaderActivity::onEnter() {
   sessionReadingSeconds = 0;
   hasSessionStartLocalDateTime = getCurrentLocalReadingStatsDateTime(sessionStartLocalDateTime);
 
+  // Compute effective overview mode from per-book override and global setting.
+  overviewModeActive = isOverviewModeEffective();
+  overviewModeZoomedIn = false;
+
   // Save current XTC as last opened book and add to recent books
   APP_STATE.openEpubPath = xtc->getPath();
   APP_STATE.saveToFile();
@@ -140,17 +144,17 @@ void XtcReaderActivity::loop() {
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
     const bool hasChapters = xtc->hasChapters() && !xtc->getChapters().empty();
     pauseReadingStatsTimer("reader_menu");
-    startActivityForResult(
-        std::make_unique<XtcReaderMenuActivity>(renderer, mappedInput, xtc->getTitle(), hasChapters, stats.isCompleted),
-        [this](const ActivityResult& result) {
-          const auto* menu = std::get_if<MenuResult>(&result.data);
-          if (result.isCancelled || menu == nullptr) {
-            resumeReadingStatsTimer("reader_menu_return");
-            requestUpdate();
-            return;
-          }
-          onReaderMenuConfirm(menu->action);
-        });
+    startActivityForResult(std::make_unique<XtcReaderMenuActivity>(renderer, mappedInput, xtc->getTitle(), hasChapters,
+                                                                   stats.isCompleted, overviewModeActive),
+                           [this](const ActivityResult& result) {
+                             const auto* menu = std::get_if<MenuResult>(&result.data);
+                             if (result.isCancelled || menu == nullptr) {
+                               resumeReadingStatsTimer("reader_menu_return");
+                               requestUpdate();
+                               return;
+                             }
+                             onReaderMenuConfirm(menu->action);
+                           });
     return;
   }
 
@@ -241,8 +245,9 @@ void XtcReaderActivity::loop() {
   const bool powerPageTurn = shortPowerTurn || longPowerTurn || timedLongPowerTurn;
   const bool frontNext = mappedInput.wasReleased(MappedInputManager::Button::Right) || powerPageTurn;
 
-  const bool frontLongPressAction = SETTINGS.longPressButtonBehavior == CrossPointSettings::CHAPTER_SKIP ||
-                                    SETTINGS.longPressButtonBehavior == CrossPointSettings::FONT_SIZE_CHANGE;
+  const bool frontLongPressAction =
+      !overviewModeActive && (SETTINGS.longPressButtonBehavior == CrossPointSettings::CHAPTER_SKIP ||
+                              SETTINGS.longPressButtonBehavior == CrossPointSettings::FONT_SIZE_CHANGE);
   if (frontLongPressAction) {
     const bool leftReleased = mappedInput.wasReleased(MappedInputManager::Button::Left);
     const bool rightReleased = mappedInput.wasReleased(MappedInputManager::Button::Right);
@@ -314,6 +319,83 @@ void XtcReaderActivity::loop() {
 
   const bool fromSideBtn = (sidePrev || sideNext) && !(frontPrev || frontNext);
   const bool fromTilt = tiltPrev || tiltNext;
+
+  // Overview mode: intercept navigation when active and book has chapters.
+  // Placed before the prevTriggered/nextTriggered gate so long-press detection
+  // can fire while buttons are still held (isPressed), not just on release frames.
+  if (overviewModeActive && xtc->hasChapters() && !xtc->getChapters().empty()) {
+    const bool anyReleased = sidePrev || sideNext || frontPrev || frontNext;
+
+    // Suppress release after a long-press was already handled.
+    if (overviewLongPressHandled && anyReleased) {
+      overviewLongPressHandled = false;
+      return;
+    }
+
+    // Detect long press via isPressed() + getHeldTime() (same pattern as frontLongPressAction).
+    const bool longPressReady = mappedInput.getHeldTime() > ReaderUtils::SKIP_HOLD_MS && !fromTilt && !powerPageTurn;
+    const bool leftHeld = mappedInput.isPressed(MappedInputManager::Button::Left);
+    const bool rightHeld = mappedInput.isPressed(MappedInputManager::Button::Right);
+    const bool pageBackHeld = mappedInput.isPressed(MappedInputManager::Button::PageBack);
+    const bool pageFwdHeld = mappedInput.isPressed(MappedInputManager::Button::PageForward);
+    const bool longPrev = longPressReady && (leftHeld || pageBackHeld);
+    const bool longNext = longPressReady && (rightHeld || pageFwdHeld);
+
+    if (!overviewModeZoomedIn) {
+      // Overview state: long press = enter zoom, short press = chapter skip.
+      if (longPrev || longNext) {
+        overviewLongPressHandled = true;
+        overviewModeZoomedIn = true;
+        recordCurrentPageReadingTime("overview_zoom_in");
+        if (longNext) {
+          currentPage += 1;
+        }
+        drawToast(renderer, tr(STR_READING));
+        delay(300);
+        requestUpdate();
+        return;
+      }
+      if (anyReleased) {
+        const auto chapters = xtc->getChapters();
+        const int chapterIdx = findChapterForPage(currentPage);
+        if (chapterIdx >= 0) {
+          recordCurrentPageReadingTime("overview_chapter_skip");
+          if (sideNext || frontNext) {
+            if (chapterIdx + 1 < static_cast<int>(chapters.size())) {
+              currentPage = chapters[chapterIdx + 1].startPage;
+            } else {
+              currentPage = xtc->getPageCount();
+            }
+          } else {
+            if (currentPage > chapters[chapterIdx].startPage) {
+              currentPage = chapters[chapterIdx].startPage;
+            } else if (chapterIdx > 0) {
+              currentPage = chapters[chapterIdx - 1].startPage;
+            }
+          }
+          requestUpdate();
+          return;
+        }
+      }
+    } else {
+      // Zoom state: long press = exit zoom, short press = page turn.
+      if (longPrev || longNext) {
+        overviewLongPressHandled = true;
+        overviewModeZoomedIn = false;
+        const int chapterIdx = findChapterForPage(currentPage);
+        if (chapterIdx >= 0) {
+          const auto chapters = xtc->getChapters();
+          currentPage = chapters[chapterIdx].startPage;
+        }
+        drawToast(renderer, tr(STR_OVERVIEW));
+        delay(300);
+        requestUpdate();
+        return;
+      }
+      // Short press in zoom state: fall through to normal page turn below.
+    }
+  }
+
   const bool prevTriggered = tiltPrev || sidePrev || frontPrev;
   const bool nextTriggered = tiltNext || sideNext || frontNext;
 
@@ -347,7 +429,7 @@ void XtcReaderActivity::loop() {
   }
 
   const bool skipPages =
-      !fromTilt && !powerPageTurn && mappedInput.getHeldTime() > ReaderUtils::SKIP_HOLD_MS &&
+      !overviewModeActive && !fromTilt && !powerPageTurn && mappedInput.getHeldTime() > ReaderUtils::SKIP_HOLD_MS &&
       (fromSideBtn ? SETTINGS.sideButtonLongPress == CrossPointSettings::SIDE_LONG_PRESS::SIDE_LONG_CHAPTER_SKIP
                    : SETTINGS.longPressButtonBehavior == CrossPointSettings::CHAPTER_SKIP);
 
@@ -570,6 +652,23 @@ int XtcReaderActivity::findChapterForPage(uint32_t page) const {
   return 0;
 }
 
+bool XtcReaderActivity::isOverviewModeEffective() const {
+  if (stats.overviewModePerBook == 0 || stats.overviewModePerBook == 1) {
+    return stats.overviewModePerBook == 1;
+  }
+  return SETTINGS.overviewMode == 1;
+}
+
+void XtcReaderActivity::toggleOverviewMode() {
+  const bool currentEffective = isOverviewModeEffective();
+  stats.overviewModePerBook = currentEffective ? 0 : 1;
+  stats.save(xtc->getCachePath());
+  overviewModeActive = !currentEffective;
+  overviewModeZoomedIn = false;
+  resumeReadingStatsTimer("toggle_overview_mode_return");
+  requestUpdate();
+}
+
 void XtcReaderActivity::openChapterSelection() {
   if (!xtc || !xtc->hasChapters() || xtc->getChapters().empty()) {
     resumeReadingStatsTimer("chapter_selection_unavailable");
@@ -701,6 +800,9 @@ void XtcReaderActivity::onReaderMenuConfirm(const int action) {
       setBookCompleted(!stats.isCompleted);
       resumeReadingStatsTimer("toggle_completed_return");
       requestUpdate();
+      break;
+    case XtcReaderMenuActivity::MenuAction::TOGGLE_OVERVIEW_MODE:
+      toggleOverviewMode();
       break;
     case XtcReaderMenuActivity::MenuAction::DELETE_STATS:
       deleteBookStats();
