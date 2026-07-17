@@ -1168,3 +1168,8 @@ void BaseTheme::drawOptionPopup(const GfxRenderer& renderer, const char* title, 
     renderer.drawText(optionFontId, textX, textY, labelText, invertText, optionStyle);
   }
 }
+
+const char* BaseTheme::homeHeaderTitle(const std::vector<RecentBook>& recentBooks,
+                                       const bool continueReadingInMenu) const {
+  return (continueReadingInMenu && !recentBooks.empty()) ? recentBooks[0].title.c_str() : nullptr;
+}

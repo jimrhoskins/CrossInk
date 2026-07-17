@@ -274,6 +274,7 @@ class BaseTheme {
   virtual int compactFileBrowserRowHeight(const GfxRenderer&) const { return BaseMetrics::values.listRowHeight; }
   virtual void drawCarouselBorder(GfxRenderer& renderer, Rect coverRect, const std::vector<RecentBook>& recentBooks,
                                   int centerIdx, bool inCarouselRow) const {}
+  virtual const char* homeHeaderTitle(const std::vector<RecentBook>& recentBooks, bool continueReadingInMenu) const;
 
   // Shared constants and helpers for battery drawing (used by all themes)
   static constexpr int batteryPercentSpacing = 4;
