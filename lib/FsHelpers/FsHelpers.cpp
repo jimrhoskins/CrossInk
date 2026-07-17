@@ -139,6 +139,22 @@ std::string extractFolderPath(const std::string& filePath) {
   return filePath.substr(0, lastSlash);
 }
 
+bool containsHiddenPathSegment(const std::string& path) {
+  if (path.empty()) return false;
+  size_t segmentStart = (path.front() == '/') ? 1 : 0;
+  while (segmentStart < path.length()) {
+    const size_t segmentEnd = path.find('/', segmentStart);
+    if (segmentStart < path.length() && path[segmentStart] == '.') {
+      return true;
+    }
+    if (segmentEnd == std::string::npos) {
+      break;
+    }
+    segmentStart = segmentEnd + 1;
+  }
+  return false;
+}
+
 void sanitizePathComponentForFat32(const char* input, char* output, size_t maxLen) {
   if (maxLen == 0) {
     return;

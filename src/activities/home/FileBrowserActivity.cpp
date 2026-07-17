@@ -119,22 +119,6 @@ std::string normalizeDirectoryPath(std::string path) {
 
 bool isSleepFolderPreferencePath(const std::string& path) { return !path.empty() && !isDefaultSleepFolderPath(path); }
 
-bool containsHiddenPathSegment(const std::string& path) {
-  if (path.empty()) return false;
-  size_t segmentStart = (path.front() == '/') ? 1 : 0;
-  while (segmentStart < path.length()) {
-    const size_t segmentEnd = path.find('/', segmentStart);
-    if (segmentStart < path.length() && path[segmentStart] == '.') {
-      return true;
-    }
-    if (segmentEnd == std::string::npos) {
-      break;
-    }
-    segmentStart = segmentEnd + 1;
-  }
-  return false;
-}
-
 void collectMetadataPathsRecursively(const std::string& dirPath, std::vector<std::string>& paths) {
   auto dir = Storage.open(dirPath.c_str());
   if (!dir || !dir.isDirectory()) {
@@ -691,7 +675,7 @@ void FileBrowserActivity::toggleHiddenFiles() {
     LOG_ERR("FileBrowser", "Failed to save showHiddenFiles=%u", SETTINGS.showHiddenFiles);
   }
 
-  if (!SETTINGS.showHiddenFiles && containsHiddenPathSegment(basepath)) {
+  if (!SETTINGS.showHiddenFiles && FsHelpers::containsHiddenPathSegment(basepath)) {
     basepath = "/";
   }
 

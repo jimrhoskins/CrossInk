@@ -612,6 +612,9 @@ void HomeActivity::loadRecentBooks(int maxBooks) {
     if (RecentBooksStore::isMissing(book)) {
       continue;
     }
+    if (!SETTINGS.showHiddenFiles && FsHelpers::containsHiddenPathSegment(book.path)) {
+      continue;
+    }
 
     ensureReusableCoverPath(book);
     recentBooks.push_back(book);

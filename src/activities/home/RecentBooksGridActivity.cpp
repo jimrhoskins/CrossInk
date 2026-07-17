@@ -209,6 +209,7 @@ void RecentBooksGridActivity::loadRecentBooks() {
   for (const auto& book : books) {
     if (recentBooks.size() >= MAX_GRID_BOOKS) break;
     if (!Storage.exists(book.path.c_str())) continue;
+    if (!SETTINGS.showHiddenFiles && FsHelpers::containsHiddenPathSegment(book.path)) continue;
     recentBooks.push_back(BookState{book});
   }
 }

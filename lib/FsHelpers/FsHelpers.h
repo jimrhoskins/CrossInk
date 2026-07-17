@@ -73,6 +73,9 @@ inline bool hasCssExtension(const String& fileName) {
 }
 std::string extractFolderPath(const std::string& filePath);
 
+// Returns true if any '/'-delimited segment of path starts with '.'.
+bool containsHiddenPathSegment(const std::string& path);
+
 /**
  * Sanitize a filename/path component for FAT32 in a caller-provided buffer.
  * Replaces invalid path characters, spaces, and control characters with '-'.

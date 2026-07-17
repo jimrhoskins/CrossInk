@@ -5,6 +5,10 @@
 - XTC Reader chapter skip navigation — long-press front or side buttons to jump between chapters for books with chapter data. Falls back to 10-page skip when no chapters are available.
 - Overview Mode for XTC books — chapter-level browsing where short clicks jump between chapter first pages and long press zooms into page-by-page reading. Global setting available in Settings > Controls, with per-book override from the in-book reader menu.
 
+### Changed
+
+- Recent books list and home screen now hide books from dot-prefixed folders when "Show Hidden Files" is off. Books reappear when the setting is toggled back on.
+
 ### Fixed
 
 - X3 sleep screen ghosting from upstream KrossPop ghosting fix.

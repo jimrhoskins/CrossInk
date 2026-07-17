@@ -1,6 +1,7 @@
 #include "RecentBooksActivity.h"
 
 #include <Arduino.h>
+#include <FsHelpers.h>
 #include <GfxRenderer.h>
 #include <HalStorage.h>
 #include <I18n.h>
@@ -9,6 +10,7 @@
 #include <memory>
 
 #include "BookActions.h"
+#include "CrossPointSettings.h"
 #include "FileBrowserActionActivity.h"
 #include "MappedInputManager.h"
 #include "RecentBooksStore.h"
@@ -35,6 +37,9 @@ void RecentBooksActivity::loadRecentBooks() {
       break;
     }
     if (RecentBooksStore::isMissing(book)) {
+      continue;
+    }
+    if (!SETTINGS.showHiddenFiles && FsHelpers::containsHiddenPathSegment(book.path)) {
       continue;
     }
     recentBooks.push_back(book);
