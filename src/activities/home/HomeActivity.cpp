@@ -1851,7 +1851,7 @@ void HomeActivity::render(RenderLock&&) {
     return;
   }
 
-  if (!recentsLoaded && !recentsLoading) {
+  if (!recentsLoaded && !recentsLoading && metrics.homeRecentBooksCount > 0) {
     recentsLoading = true;
     loadRecentCovers(metrics.homeCoverHeight);
   }
