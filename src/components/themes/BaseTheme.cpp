@@ -624,7 +624,8 @@ void BaseTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
                                const std::function<const char*(int index)>& buttonLabel,
                                const std::function<UIIcon(int index)>& rowIcon) const {
   (void)rowIcon;
-  constexpr int maxVisibleItems = 7;
+  const int maxVisibleItems = std::max(1, (rect.height + BaseMetrics::values.menuSpacing) /
+                                              (BaseMetrics::values.menuRowHeight + BaseMetrics::values.menuSpacing));
   const int pageItems = maxVisibleItems;
   const int totalPages = (buttonCount + pageItems - 1) / pageItems;
 

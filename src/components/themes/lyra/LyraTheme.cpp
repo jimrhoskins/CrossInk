@@ -649,7 +649,8 @@ void LyraTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
                                const std::function<UIIcon(int index)>& rowIcon) const {
   const auto& menuMetrics = UITheme::getInstance().getMetrics();
 
-  constexpr int maxVisibleItems = 7;
+  const int maxVisibleItems =
+      std::max(1, (rect.height + menuMetrics.menuSpacing) / (menuMetrics.menuRowHeight + menuMetrics.menuSpacing));
   const int pageItems = maxVisibleItems;
   const int totalPages = (buttonCount + pageItems - 1) / pageItems;
 
