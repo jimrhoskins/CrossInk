@@ -5,6 +5,7 @@
 - XTC Reader chapter skip navigation — long-press front or side buttons to jump between chapters for books with chapter data. Falls back to 10-page skip when no chapters are available.
 - Overview Mode for XTC books — chapter-level browsing where short clicks jump between chapter first pages and long press zooms into page-by-page reading. Global setting available in Settings > Controls, with per-book override from the in-book reader menu.
 - To Be Read (TBR) list — maintain a persistent list of books you want to read. Add books from the file browser, recent books, or reader menus. Access the TBR list from the home screen when it has entries. Setting to auto-remove books when marked as finished.
+- Lyra Minimal theme — home screen with no cover tiles, shows "Continue Reading" as a menu item instead.
 
 ### Changed
 
@@ -14,6 +15,11 @@
 
 - X3 sleep screen ghosting from upstream KrossPop ghosting fix.
 - Simulator: Shift modifier for long-press injection — Shift+button gives instant 2000ms held time.
+- TBR store now loads at boot so the list persists across sleep.
+- Home menu navigation accounts for TBR item count, making Settings reachable when TBR is active.
+- Home screen no longer crashes with themes that set homeRecentBooksCount to zero.
+- Menu scrolling threshold now adapts to available screen height instead of hardcoding seven items.
+- Lyra Minimal theme no longer shows a loading spinner for covers it does not display.
 
 ---
 

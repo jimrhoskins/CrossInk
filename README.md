@@ -49,6 +49,9 @@ My goal with this fork was to maintain the core Crosspoint firmware while integr
 - Added ability to view Recent Books as a 3x3 grid view.
 - XTC Reader: Chapter skip via long-press (front or side buttons) for quick chapter navigation.
 - XTC Reader: Overview Mode for chapter-level browsing — short clicks jump between chapter first-pages, long press zooms into page-by-page reading. Per-book override available from the in-book menu.
+- To Be Read (TBR) list — maintain a persistent reading list, add books from file browser or reader menus, auto-remove on finish.
+- Added a custom `Lyra Minimal` theme — clean home screen with no cover tiles, just a "Continue Reading" menu item.
+- Recent books and home screen hide dot-prefixed folders when "Show Hidden Files" is off.
 - To view a more detailed list for each version, visit the [releases](https://github.com/uxjulia/CrossInk/releases) page to read release notes.
 
 ---
