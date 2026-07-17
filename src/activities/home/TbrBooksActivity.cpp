@@ -1,4 +1,4 @@
-#include "RecentBooksActivity.h"
+#include "TbrBooksActivity.h"
 
 #include <Arduino.h>
 #include <FsHelpers.h>
@@ -23,60 +23,46 @@
 #include "fontIds.h"
 
 namespace {
-constexpr size_t MAX_LIST_RECENT_BOOKS = 10;
-// Hold threshold for the long-press action menu (firmware convention).
+constexpr size_t MAX_LIST_TBR_BOOKS = 18;
 constexpr unsigned long LONG_PRESS_MS = 1000;
 }  // namespace
 
-void RecentBooksActivity::loadRecentBooks() {
-  recentBooks.clear();
-  const auto& books = RECENT_BOOKS.getBooks();
-  recentBooks.reserve(std::min(books.size(), MAX_LIST_RECENT_BOOKS));
+void TbrBooksActivity::loadTbrBooks() {
+  tbrBooks.clear();
+  TBR_BOOKS.pruneMissing();
+  const auto& books = TBR_BOOKS.getBooks();
+  tbrBooks.reserve(std::min(books.size(), MAX_LIST_TBR_BOOKS));
 
   for (const auto& book : books) {
-    if (recentBooks.size() >= MAX_LIST_RECENT_BOOKS) {
+    if (tbrBooks.size() >= MAX_LIST_TBR_BOOKS) {
       break;
-    }
-    if (RecentBooksStore::isMissing(book)) {
-      continue;
     }
     if (!SETTINGS.showHiddenFiles && FsHelpers::containsHiddenPathSegment(book.path)) {
       continue;
     }
-    recentBooks.push_back(book);
+    tbrBooks.push_back(book);
   }
 }
 
-void RecentBooksActivity::onEnter() {
+void TbrBooksActivity::onEnter() {
   Activity::onEnter();
-
-  // Prune entries whose backing files are gone; this is one of two interaction
-  // points where the persistent store gets cleaned (the other is addBook).
-  if (RECENT_BOOKS.pruneMissing()) {
-    RECENT_BOOKS.saveToFile();
-  }
-
-  // Load data
-  loadRecentBooks();
-
+  loadTbrBooks();
   selectorIndex = 0;
   requestUpdate();
 }
 
-void RecentBooksActivity::onExit() {
+void TbrBooksActivity::onExit() {
   Activity::onExit();
-  recentBooks.clear();
+  tbrBooks.clear();
 }
 
-void RecentBooksActivity::loop() {
+void TbrBooksActivity::loop() {
   const auto& metrics = UITheme::getInstance().getMetrics();
   const int contentTop = CompactHeader::contentTop(metrics);
   const int contentHeight =
       renderer.getScreenHeight() - contentTop - metrics.buttonHintsHeight - metrics.verticalSpacing;
   const int pageItems = std::max(1, contentHeight / metrics.listWithSubtitleRowHeight);
 
-  // After a long-press has fired, swallow input until Confirm is physically released
-  // (so the release doesn't also open the book; re-arm only once the button is up).
   if (longPressFired) {
     if (!mappedInput.isPressed(MappedInputManager::Button::Confirm)) {
       longPressFired = false;
@@ -84,10 +70,7 @@ void RecentBooksActivity::loop() {
     return;
   }
 
-  // Long-press Confirm on the selected book: open the same action menu shape used by File Browser.
-  // Fires when the hold times out while still held (firmware hold-to-act pattern,
-  // cf. FileBrowserActivity BACK long-press).
-  if (!recentBooks.empty() && selectorIndex < recentBooks.size() &&
+  if (!tbrBooks.empty() && selectorIndex < tbrBooks.size() &&
       mappedInput.isPressed(MappedInputManager::Button::Confirm) && mappedInput.getHeldTime() >= LONG_PRESS_MS) {
     longPressFired = true;
     showBookActionMenu(selectorIndex, true);
@@ -95,9 +78,9 @@ void RecentBooksActivity::loop() {
   }
 
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
-    if (!recentBooks.empty() && selectorIndex < static_cast<int>(recentBooks.size())) {
-      LOG_DBG("RBA", "Selected recent book: %s", recentBooks[selectorIndex].path.c_str());
-      onSelectBook(recentBooks[selectorIndex].path);
+    if (!tbrBooks.empty() && selectorIndex < static_cast<int>(tbrBooks.size())) {
+      LOG_DBG("TBR", "Selected TBR book: %s", tbrBooks[selectorIndex].path.c_str());
+      onSelectBook(tbrBooks[selectorIndex].path);
       return;
     }
   }
@@ -106,7 +89,7 @@ void RecentBooksActivity::loop() {
     onGoHome();
   }
 
-  int listSize = static_cast<int>(recentBooks.size());
+  int listSize = static_cast<int>(tbrBooks.size());
 
   buttonNavigator.onNextRelease([this, listSize] {
     selectorIndex = ButtonNavigator::nextIndex(static_cast<int>(selectorIndex), listSize);
@@ -129,31 +112,31 @@ void RecentBooksActivity::loop() {
   });
 }
 
-void RecentBooksActivity::reloadAfterBookAction() {
-  loadRecentBooks();
-  if (recentBooks.empty()) {
+void TbrBooksActivity::reloadAfterBookAction() {
+  loadTbrBooks();
+  if (tbrBooks.empty()) {
     selectorIndex = 0;
-  } else if (selectorIndex >= recentBooks.size()) {
-    selectorIndex = recentBooks.size() - 1;
+  } else if (selectorIndex >= tbrBooks.size()) {
+    selectorIndex = tbrBooks.size() - 1;
   }
   requestUpdate(true);
 }
 
-void RecentBooksActivity::promptDeleteBook(const RecentBook& book) {
+void TbrBooksActivity::promptDeleteBook(const RecentBook& book) {
   const std::string path = book.path;
   auto handler = [this, path](const ActivityResult& res) {
     if (res.isCancelled) {
-      LOG_DBG("RBA", "Delete cancelled");
       return;
     }
 
-    LOG_DBG("RBA", "Attempting to delete: %s", path.c_str());
+    LOG_DBG("TBR", "Attempting to delete: %s", path.c_str());
     BookActions::clearFileMetadata(path);
     if (!Storage.remove(path.c_str())) {
-      LOG_ERR("RBA", "Failed to delete file: %s", path.c_str());
+      LOG_ERR("TBR", "Failed to delete file: %s", path.c_str());
       return;
     }
 
+    TBR_BOOKS.removeByPath(path);
     RECENT_BOOKS.removeByPath(path);
     reloadAfterBookAction();
   };
@@ -163,28 +146,26 @@ void RecentBooksActivity::promptDeleteBook(const RecentBook& book) {
                          std::move(handler));
 }
 
-void RecentBooksActivity::promptRemoveBook(const std::string& path, const std::string& title) {
+void TbrBooksActivity::promptRemoveFromTbr(const std::string& path, const std::string& title) {
   auto handler = [this, path](const ActivityResult& res) {
     if (res.isCancelled) {
-      LOG_DBG("RBA", "Remove from recents cancelled");
       return;
     }
-    if (RECENT_BOOKS.removeByPath(path)) {
-      LOG_DBG("RBA", "Removed from recents: %s", path.c_str());
+    if (TBR_BOOKS.removeByPath(path)) {
+      LOG_DBG("TBR", "Removed from TBR: %s", path.c_str());
       reloadAfterBookAction();
     }
   };
 
-  startActivityForResult(
-      std::make_unique<ConfirmationActivity>(renderer, mappedInput, tr(STR_REMOVE_FROM_RECENTS), title,
-                                             /*ignoreInitialConfirmRelease=*/false),
-      std::move(handler));
+  startActivityForResult(std::make_unique<ConfirmationActivity>(renderer, mappedInput, tr(STR_REMOVE_FROM_TBR), title,
+                                                                /*ignoreInitialConfirmRelease=*/false),
+                         std::move(handler));
 }
 
-void RecentBooksActivity::showBookActionMenu(const size_t bookIndex, const bool ignoreInitialConfirmRelease) {
-  if (bookIndex >= recentBooks.size()) return;
+void TbrBooksActivity::showBookActionMenu(const size_t bookIndex, const bool ignoreInitialConfirmRelease) {
+  if (bookIndex >= tbrBooks.size()) return;
 
-  const RecentBook book = recentBooks[bookIndex];
+  const RecentBook book = tbrBooks[bookIndex];
   std::vector<FileBrowserActionActivity::MenuItem> items =
       BookActions::buildBookActionItems(book.path, /*includeRemoveFromRecents=*/true);
 
@@ -198,7 +179,7 @@ void RecentBooksActivity::showBookActionMenu(const size_t bookIndex, const bool 
 
         const auto* actionResult = std::get_if<FileBrowserActionResult>(&result.data);
         if (!actionResult) {
-          LOG_ERR("RBA", "Book action result missing");
+          LOG_ERR("TBR", "Book action result missing");
           return;
         }
 
@@ -213,7 +194,7 @@ void RecentBooksActivity::showBookActionMenu(const size_t bookIndex, const bool 
                 [this, book](const ActivityResult& confirmation) {
                   if (!confirmation.isCancelled) {
                     if (!BookActions::clearBookCache(book.path)) {
-                      LOG_ERR("RBA", "Failed to clear book cache for: %s", book.path.c_str());
+                      LOG_ERR("TBR", "Failed to clear book cache for: %s", book.path.c_str());
                     } else {
                       BookActions::drawToast(renderer, tr(STR_BOOK_CACHE_DELETED));
                       delay(1000);
@@ -229,7 +210,7 @@ void RecentBooksActivity::showBookActionMenu(const size_t bookIndex, const bool 
                 [this, book](const ActivityResult& confirmation) {
                   if (!confirmation.isCancelled) {
                     if (!BookActions::deleteBookStats(book.path)) {
-                      LOG_ERR("RBA", "Failed to delete book stats for: %s", book.path.c_str());
+                      LOG_ERR("TBR", "Failed to delete book stats for: %s", book.path.c_str());
                     } else {
                       BookActions::drawToast(renderer, tr(STR_BOOK_STATS_DELETED));
                       delay(1000);
@@ -246,7 +227,7 @@ void RecentBooksActivity::showBookActionMenu(const size_t bookIndex, const bool 
                 [this, book](const ActivityResult& confirmation) {
                   if (!confirmation.isCancelled) {
                     if (!BookActions::resetBookReaderSettings(book.path)) {
-                      LOG_ERR("RBA", "Failed to reset reader settings for: %s", book.path.c_str());
+                      LOG_ERR("TBR", "Failed to reset reader settings for: %s", book.path.c_str());
                     } else {
                       BookActions::drawToast(renderer, tr(STR_BOOK_READER_SETTINGS_RESET));
                       delay(1000);
@@ -271,16 +252,13 @@ void RecentBooksActivity::showBookActionMenu(const size_t bookIndex, const bool 
             reloadAfterBookAction();
             return;
           case FileBrowserAction::RemoveFromTbr:
-            TBR_BOOKS.removeByPath(book.path);
-            BookActions::drawToast(renderer, tr(STR_REMOVED_FROM_TBR));
-            delay(1000);
-            reloadAfterBookAction();
+            promptRemoveFromTbr(book.path, book.title);
             return;
           case FileBrowserAction::EpubRenderMode: {
             const uint8_t currentIndex =
                 BookActions::epubRenderModeDisplayIndex(EpubReaderActivity::loadBookRenderMode(book.path));
             startActivityForResult(
-                std::make_unique<OptionSelectionActivity>(renderer, mappedInput, "RecentEpubRenderModeSelect",
+                std::make_unique<OptionSelectionActivity>(renderer, mappedInput, "TbrEpubRenderModeSelect",
                                                           StrId::STR_EPUB_RENDER_MODE,
                                                           BookActions::epubRenderModeOptions(), currentIndex),
                 [this, book](const ActivityResult& selectionResult) {
@@ -289,7 +267,7 @@ void RecentBooksActivity::showBookActionMenu(const size_t bookIndex, const bool 
                     if (selection != nullptr &&
                         !EpubReaderActivity::saveBookRenderMode(
                             book.path, BookActions::epubRenderModeForDisplayIndex(selection->index))) {
-                      LOG_ERR("RBA", "Failed to save render mode for: %s", book.path.c_str());
+                      LOG_ERR("TBR", "Failed to save render mode for: %s", book.path.c_str());
                     }
                   }
                   reloadAfterBookAction();
@@ -297,7 +275,10 @@ void RecentBooksActivity::showBookActionMenu(const size_t bookIndex, const bool 
             return;
           }
           case FileBrowserAction::RemoveFromRecents:
-            promptRemoveBook(book.path, book.title);
+            RECENT_BOOKS.removeByPath(book.path);
+            BookActions::drawToast(renderer, tr(STR_REMOVED_FROM_RECENTS));
+            delay(1000);
+            reloadAfterBookAction();
             return;
           case FileBrowserAction::PinFavorite:
           case FileBrowserAction::UnpinFavorite:
@@ -312,29 +293,27 @@ void RecentBooksActivity::showBookActionMenu(const size_t bookIndex, const bool 
       });
 }
 
-void RecentBooksActivity::render(RenderLock&&) {
+void TbrBooksActivity::render(RenderLock&&) {
   renderer.clearScreen();
 
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
   const auto& metrics = UITheme::getInstance().getMetrics();
 
-  CompactHeader::drawTitle(renderer, tr(STR_MENU_RECENT_BOOKS));
+  CompactHeader::drawTitle(renderer, tr(STR_MENU_TBR));
 
   const int contentTop = CompactHeader::contentTop(metrics);
   const int contentHeight = pageHeight - contentTop - metrics.buttonHintsHeight - metrics.verticalSpacing;
 
-  // Recent tab
-  if (recentBooks.empty()) {
-    renderer.drawText(UI_10_FONT_ID, metrics.contentSidePadding, contentTop + 20, tr(STR_NO_RECENT_BOOKS));
+  if (tbrBooks.empty()) {
+    renderer.drawText(UI_10_FONT_ID, metrics.contentSidePadding, contentTop + 20, tr(STR_NO_TBR_BOOKS));
   } else {
     GUI.drawList(
-        renderer, Rect{0, contentTop, pageWidth, contentHeight}, recentBooks.size(), selectorIndex,
-        [this](int index) { return recentBooks[index].title; }, [this](int index) { return recentBooks[index].author; },
-        [this](int index) { return UITheme::getFileIcon(recentBooks[index].path); });
+        renderer, Rect{0, contentTop, pageWidth, contentHeight}, tbrBooks.size(), selectorIndex,
+        [this](int index) { return tbrBooks[index].title; }, [this](int index) { return tbrBooks[index].author; },
+        [this](int index) { return UITheme::getFileIcon(tbrBooks[index].path); });
   }
 
-  // Help text
   const auto labels = mappedInput.mapLabels(tr(STR_HOME), tr(STR_OPEN), tr(STR_DIR_UP), tr(STR_DIR_DOWN));
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
 

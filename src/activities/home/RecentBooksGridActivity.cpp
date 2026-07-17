@@ -20,6 +20,7 @@
 #include "MappedInputManager.h"
 #include "RecentBookProgress.h"
 #include "RecentBooksStore.h"
+#include "TbrBooksStore.h"
 #include "activities/reader/EpubReaderActivity.h"
 #include "activities/util/ConfirmationActivity.h"
 #include "activities/util/OptionSelectionActivity.h"
@@ -511,6 +512,18 @@ void RecentBooksGridActivity::showBookActionMenu(const int bookIndex, const bool
             reloadAfterBookAction();
             return;
           }
+          case FileBrowserAction::AddToTbr:
+            TBR_BOOKS.addBook(book.path, book.title, book.author, book.coverBmpPath);
+            BookActions::drawToast(renderer, tr(STR_ADDED_TO_TBR));
+            delay(1000);
+            reloadAfterBookAction();
+            return;
+          case FileBrowserAction::RemoveFromTbr:
+            TBR_BOOKS.removeByPath(book.path);
+            BookActions::drawToast(renderer, tr(STR_REMOVED_FROM_TBR));
+            delay(1000);
+            reloadAfterBookAction();
+            return;
           case FileBrowserAction::EpubRenderMode: {
             const uint8_t currentIndex =
                 BookActions::epubRenderModeDisplayIndex(EpubReaderActivity::loadBookRenderMode(book.path));

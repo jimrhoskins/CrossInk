@@ -208,3 +208,37 @@ You can also enable it per-book from the in-book reader menu. Per-book overrides
 - **Use global** — follow the global setting (default).
 
 When per-book Override is Off or On, the menu shows "Disable Overview Mode" / "Enable Overview Mode" respectively. When set to Use global, it shows "Disable/Enable Overview Mode" based on the current global state.
+
+## To Be Read (TBR) List
+
+The TBR list lets you maintain a persistent list of books you want to read, stored at `/.crosspoint/tbr.json`.
+
+### Adding Books
+
+You can add books to your TBR list from:
+
+- **File Browser** — long-press a book and select "Add to TBR"
+- **Recent Books** — long-press a book and select "Add to TBR"
+- **Reader Menu** — while reading, open the menu and select "Add to TBR"
+
+### Viewing Your TBR List
+
+When you have books in your TBR list, a "To Be Read" item appears on the home screen. Select it to see your list of books to read.
+
+### Removing Books
+
+You can remove books from the TBR list:
+
+- From the TBR list, long-press a book and select "Remove from TBR"
+- From any action menu, select "Remove from TBR"
+- From the reader menu while reading a TBR book, select "Remove from TBR"
+
+### Auto-remove on Finish
+
+In **Settings > System, Files & Cache > Remove Finished from TBR**, you can enable auto-removal. When enabled, marking a book as finished will automatically remove it from the TBR list.
+
+### Storage
+
+- Maximum 18 books in the list (oldest entries removed when full)
+- Books are stored in insertion order
+- Missing books are automatically pruned when the TBR list is opened

@@ -19,22 +19,24 @@ constexpr int kTitleLineGap = 1;
 
 XtcReaderMenuActivity::XtcReaderMenuActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, std::string title,
                                              const bool hasChapters, const bool isBookCompleted,
-                                             const bool overviewModeEnabled)
+                                             const bool overviewModeEnabled, const bool isInTbr)
     : Activity("XtcReaderMenu", renderer, mappedInput),
       title(std::move(title)),
-      items(buildMenuItems(hasChapters, isBookCompleted, overviewModeEnabled)) {}
+      items(buildMenuItems(hasChapters, isBookCompleted, overviewModeEnabled, isInTbr)) {}
 
 std::vector<XtcReaderMenuActivity::MenuItem> XtcReaderMenuActivity::buildMenuItems(const bool hasChapters,
                                                                                    const bool isBookCompleted,
-                                                                                   const bool overviewModeEnabled) {
+                                                                                   const bool overviewModeEnabled,
+                                                                                   const bool isInTbr) {
   std::vector<MenuItem> menuItems;
-  menuItems.reserve(6);
+  menuItems.reserve(7);
   if (hasChapters) {
     menuItems.push_back({MenuAction::SELECT_CHAPTER, StrId::STR_SELECT_CHAPTER});
   }
   menuItems.push_back({MenuAction::READING_STATS, StrId::STR_READING_STATS});
   menuItems.push_back(
       {MenuAction::TOGGLE_COMPLETED, isBookCompleted ? StrId::STR_MARK_UNFINISHED : StrId::STR_MARK_FINISHED});
+  menuItems.push_back({MenuAction::TOGGLE_TBR, isInTbr ? StrId::STR_REMOVE_FROM_TBR_ACTION : StrId::STR_ADD_TO_TBR});
   if (hasChapters) {
     menuItems.push_back({MenuAction::TOGGLE_OVERVIEW_MODE,
                          overviewModeEnabled ? StrId::STR_OVERVIEW_MODE_OFF : StrId::STR_OVERVIEW_MODE_ON});

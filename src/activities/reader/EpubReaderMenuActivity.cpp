@@ -134,15 +134,15 @@ EpubReaderMenuActivity::EpubReaderMenuActivity(
     GfxRenderer& renderer, MappedInputManager& mappedInput, const std::string& title, const int currentPage,
     const int totalPages, const int bookProgressPercent, const uint8_t currentOrientation, const bool hasFootnotes,
     const bool hasBookmarks, const bool hasClippings, const bool isCurrentPageBookmarked, const bool isBookCompleted,
-    const bool autoPageTurnActive, const uint16_t autoPageTurnIntervalSeconds, const bool showReadingPaceReset,
-    ReaderOptionsActivity::SaveSettingsCallback saveReaderSettingsCallback, void* saveReaderSettingsContext,
-    ReaderOptionsActivity::SaveGlobalSettingsCallback saveGlobalSettingsCallback, void* saveGlobalSettingsContext,
-    ReaderOptionsActivity::GlobalSettingsEditCallback beginGlobalSettingsEditCallback,
+    const bool isInTbr, const bool autoPageTurnActive, const uint16_t autoPageTurnIntervalSeconds,
+    const bool showReadingPaceReset, ReaderOptionsActivity::SaveSettingsCallback saveReaderSettingsCallback,
+    void* saveReaderSettingsContext, ReaderOptionsActivity::SaveGlobalSettingsCallback saveGlobalSettingsCallback,
+    void* saveGlobalSettingsContext, ReaderOptionsActivity::GlobalSettingsEditCallback beginGlobalSettingsEditCallback,
     void* beginGlobalSettingsEditContext, const bool stablePageNumbersAvailable,
     ReaderOptionsActivity::GlobalSettingsEditCallback endGlobalSettingsEditCallback, void* endGlobalSettingsEditContext)
     : Activity("EpubReaderMenu", renderer, mappedInput),
       menuItems(buildMenuItems(hasFootnotes, hasBookmarks, hasClippings, isCurrentPageBookmarked, isBookCompleted,
-                               showReadingPaceReset)),
+                               isInTbr, showReadingPaceReset)),
       title(title),
       pendingOrientation(currentOrientation),
       currentPage(currentPage),
@@ -163,7 +163,7 @@ EpubReaderMenuActivity::EpubReaderMenuActivity(
 EpubReaderMenuActivity::TabMenuItems EpubReaderMenuActivity::buildMenuItems(bool hasFootnotes, bool hasBookmarks,
                                                                             bool hasClippings,
                                                                             bool isCurrentPageBookmarked,
-                                                                            bool isBookCompleted,
+                                                                            bool isBookCompleted, bool isInTbr,
                                                                             bool showReadingPaceReset) {
   TabMenuItems items;
   auto& mainItems = items[MAIN_TAB_INDEX];
@@ -185,6 +185,7 @@ EpubReaderMenuActivity::TabMenuItems EpubReaderMenuActivity::buildMenuItems(bool
   mainItems.push_back({MenuAction::READING_STATS, StrId::STR_READING_STATS});
   mainItems.push_back(
       {MenuAction::TOGGLE_COMPLETED, isBookCompleted ? StrId::STR_MARK_UNFINISHED : StrId::STR_MARK_FINISHED});
+  mainItems.push_back({MenuAction::TOGGLE_TBR, isInTbr ? StrId::STR_REMOVE_FROM_TBR_ACTION : StrId::STR_ADD_TO_TBR});
 
   bookmarkItems.push_back({MenuAction::SYNC, StrId::STR_SYNC_PROGRESS});
   bookmarkItems.push_back({MenuAction::NEARBY_POSITION_SYNC, StrId::STR_NEARBY_POSITION_SYNC});

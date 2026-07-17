@@ -21,6 +21,7 @@
 #include "MappedInputManager.h"
 #include "ReaderUtils.h"
 #include "RecentBooksStore.h"
+#include "TbrBooksStore.h"
 #include "XtcReaderChapterSelectionActivity.h"
 #include "XtcReaderMenuActivity.h"
 #include "activities/boot_sleep/SleepCoverAssets.h"
@@ -144,17 +145,18 @@ void XtcReaderActivity::loop() {
   if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
     const bool hasChapters = xtc->hasChapters() && !xtc->getChapters().empty();
     pauseReadingStatsTimer("reader_menu");
-    startActivityForResult(std::make_unique<XtcReaderMenuActivity>(renderer, mappedInput, xtc->getTitle(), hasChapters,
-                                                                   stats.isCompleted, overviewModeActive),
-                           [this](const ActivityResult& result) {
-                             const auto* menu = std::get_if<MenuResult>(&result.data);
-                             if (result.isCancelled || menu == nullptr) {
-                               resumeReadingStatsTimer("reader_menu_return");
-                               requestUpdate();
-                               return;
-                             }
-                             onReaderMenuConfirm(menu->action);
-                           });
+    startActivityForResult(
+        std::make_unique<XtcReaderMenuActivity>(renderer, mappedInput, xtc->getTitle(), hasChapters, stats.isCompleted,
+                                                overviewModeActive, TBR_BOOKS.isInTbr(xtc->getPath())),
+        [this](const ActivityResult& result) {
+          const auto* menu = std::get_if<MenuResult>(&result.data);
+          if (result.isCancelled || menu == nullptr) {
+            resumeReadingStatsTimer("reader_menu_return");
+            requestUpdate();
+            return;
+          }
+          onReaderMenuConfirm(menu->action);
+        });
     return;
   }
 
@@ -801,6 +803,17 @@ void XtcReaderActivity::onReaderMenuConfirm(const int action) {
       resumeReadingStatsTimer("toggle_completed_return");
       requestUpdate();
       break;
+    case XtcReaderMenuActivity::MenuAction::TOGGLE_TBR: {
+      const std::string path = xtc->getPath();
+      if (TBR_BOOKS.isInTbr(path)) {
+        TBR_BOOKS.removeByPath(path);
+      } else {
+        TBR_BOOKS.addBook(path, xtc->getTitle(), xtc->getAuthor(), xtc->getThumbBmpPath());
+      }
+      resumeReadingStatsTimer("toggle_tbr_return");
+      requestUpdate();
+      break;
+    }
     case XtcReaderMenuActivity::MenuAction::TOGGLE_OVERVIEW_MODE:
       toggleOverviewMode();
       break;

@@ -16,6 +16,7 @@
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
 #include "RecentBooksStore.h"
+#include "TbrBooksStore.h"
 #include "activities/reader/BookReadingStats.h"
 #include "activities/reader/EpubReaderActivity.h"
 #include "activities/reader/GlobalReadingStats.h"
@@ -62,6 +63,11 @@ std::vector<FileBrowserActionActivity::MenuItem> buildBookActionItems(const std:
   }
   if (includeRemoveFromRecents) {
     items.push_back({FileBrowserAction::RemoveFromRecents, StrId::STR_REMOVE_FROM_RECENTS_ACTION});
+  }
+  if (TBR_BOOKS.isInTbr(fullPath)) {
+    items.push_back({FileBrowserAction::RemoveFromTbr, StrId::STR_REMOVE_FROM_TBR_ACTION});
+  } else {
+    items.push_back({FileBrowserAction::AddToTbr, StrId::STR_ADD_TO_TBR});
   }
   return items;
 }
@@ -201,6 +207,10 @@ bool toggleBookCompleted(const std::string& fullPath, const std::string& display
     }
   }
 
+  if (SETTINGS.removeFinishedFromTbr && completed) {
+    TBR_BOOKS.removeByPath(fullPath);
+  }
+
   if (isEpub && completed && SETTINGS.moveFinishedToReadFolder && fullPath.rfind("/Read/", 0) != 0) {
     const std::string oldCachePath = epub.getCachePath();
     const std::string dstPath = BookMoveUtils::buildReadFolderDestination(fullPath);
@@ -222,6 +232,8 @@ bool toggleBookCompleted(const std::string& fullPath, const std::string& display
 
   return true;
 }
+
+bool isInTbr(const std::string& fullPath) { return TBR_BOOKS.isInTbr(fullPath); }
 
 void drawToast(const GfxRenderer& renderer, const char* msg) {
   constexpr int toastPadX = 20;

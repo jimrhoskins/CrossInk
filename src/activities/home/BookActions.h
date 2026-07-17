@@ -22,6 +22,7 @@ uint8_t epubRenderModeForDisplayIndex(uint8_t displayIndex);
 std::string confirmationHeading(StrId actionLabelId);
 bool isBookCompleted(const std::string& fullPath);
 bool toggleBookCompleted(const std::string& fullPath, const std::string& displayName, bool& completed);
+bool isInTbr(const std::string& fullPath);
 void drawToast(const GfxRenderer& renderer, const char* msg);
 
 }  // namespace BookActions

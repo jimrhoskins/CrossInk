@@ -16,6 +16,7 @@
 #include "home/HomeActivity.h"
 #include "home/RecentBooksActivity.h"
 #include "home/RecentBooksGridActivity.h"
+#include "home/TbrBooksActivity.h"
 #include "network/CrossPointWebServerActivity.h"
 #include "network/NearbyStatsSyncActivity.h"
 #include "reader/ReaderActivity.h"
@@ -222,6 +223,8 @@ void ActivityManager::goToRecentBooks() {
     replaceActivity(std::make_unique<RecentBooksActivity>(renderer, mappedInput));
   }
 }
+
+void ActivityManager::goToTbrBooks() { replaceActivity(std::make_unique<TbrBooksActivity>(renderer, mappedInput)); }
 
 void ActivityManager::goToBrowser() {
   const auto& servers = OPDS_STORE.getServers();

@@ -14,13 +14,14 @@ class XtcReaderMenuActivity final : public Activity {
     SELECT_CHAPTER,
     READING_STATS,
     TOGGLE_COMPLETED,
+    TOGGLE_TBR,
     TOGGLE_OVERVIEW_MODE,
     DELETE_STATS,
     DELETE_CACHE,
   };
 
   XtcReaderMenuActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, std::string title, bool hasChapters,
-                        bool isBookCompleted, bool overviewModeEnabled);
+                        bool isBookCompleted, bool overviewModeEnabled, bool isInTbr);
 
   void onEnter() override;
   void loop() override;
@@ -34,7 +35,8 @@ class XtcReaderMenuActivity final : public Activity {
     StrId labelId;
   };
 
-  static std::vector<MenuItem> buildMenuItems(bool hasChapters, bool isBookCompleted, bool overviewModeEnabled);
+  static std::vector<MenuItem> buildMenuItems(bool hasChapters, bool isBookCompleted, bool overviewModeEnabled,
+                                              bool isInTbr);
 
   ButtonNavigator buttonNavigator;
   std::string title;

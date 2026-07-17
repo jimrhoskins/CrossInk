@@ -33,6 +33,7 @@
 #include "RecentBookProgress.h"
 #include "RecentBooksStore.h"
 #include "SavedItemsHomeActivity.h"
+#include "TbrBooksStore.h"
 #include "components/UITheme.h"
 #include "components/themes/dashboard/DashboardTheme.h"
 #include "components/themes/lyra/LyraCarouselTheme.h"
@@ -53,6 +54,7 @@ enum class HomeMenuAction {
   BrowseFiles,
   ContinueReading,
   RecentBooks,
+  TbrList,
   OpdsBrowser,
   ReadingStats,
   Bookmarks,
@@ -67,7 +69,7 @@ struct HomeMenuEntry {
 };
 
 struct HomeMenuEntries {
-  static constexpr int kCapacity = 8;
+  static constexpr int kCapacity = 9;
   std::array<HomeMenuEntry, kCapacity> entries{};
   int count = 0;
 
@@ -252,6 +254,9 @@ void appendHomeMenuItems(HomeMenuEntries& items, bool hasOpdsServers, bool hasRe
                          bool hasClippings) {
   items.push({tr(STR_BROWSE_FILES), Folder, HomeMenuAction::BrowseFiles});
   items.push({tr(STR_MENU_RECENT_BOOKS), Recent, HomeMenuAction::RecentBooks});
+  if (!TBR_BOOKS.getBooks().empty()) {
+    items.push({tr(STR_MENU_TBR), Recent, HomeMenuAction::TbrList});
+  }
 
   if (hasOpdsServers) {
     items.push({tr(STR_OPDS_BROWSER), Library, HomeMenuAction::OpdsBrowser});
@@ -276,6 +281,9 @@ HomeMenuEntries buildHomeMenuItems(bool hasOpdsServers, bool hasReadingStats, bo
 HomeMenuEntries buildMinimalMenuItems(bool hasOpdsServers, bool hasReadingStats, bool hasBookmarks, bool hasClippings) {
   HomeMenuEntries items;
   items.push({tr(STR_MENU_RECENT_BOOKS), Recent, HomeMenuAction::RecentBooks});
+  if (!TBR_BOOKS.getBooks().empty()) {
+    items.push({tr(STR_MENU_TBR), Recent, HomeMenuAction::TbrList});
+  }
 
   if (hasOpdsServers) {
     items.push({tr(STR_OPDS_BROWSER), Library, HomeMenuAction::OpdsBrowser});
@@ -307,6 +315,8 @@ HomeMenuAction homeActionForInitialMenuItem(HomeMenuItem item) {
       return HomeMenuAction::BrowseFiles;
     case HomeMenuItem::RECENTS:
       return HomeMenuAction::RecentBooks;
+    case HomeMenuItem::TBR_LIST:
+      return HomeMenuAction::TbrList;
     case HomeMenuItem::OPDS_BROWSER:
       return HomeMenuAction::OpdsBrowser;
     case HomeMenuItem::FILE_TRANSFER:
@@ -1458,6 +1468,9 @@ void HomeActivity::loop() {
           case HomeMenuAction::RecentBooks:
             onRecentsOpen();
             break;
+          case HomeMenuAction::TbrList:
+            onTbrListOpen();
+            break;
           case HomeMenuAction::OpdsBrowser:
             onOpdsBrowserOpen();
             break;
@@ -1653,6 +1666,9 @@ void HomeActivity::loop() {
         break;
       case HomeMenuAction::RecentBooks:
         onRecentsOpen();
+        break;
+      case HomeMenuAction::TbrList:
+        onTbrListOpen();
         break;
       case HomeMenuAction::OpdsBrowser:
         onOpdsBrowserOpen();
@@ -1886,6 +1902,7 @@ void HomeActivity::onContinueReading() {
 }
 
 void HomeActivity::onRecentsOpen() { activityManager.goToRecentBooks(); }
+void HomeActivity::onTbrListOpen() { activityManager.goToTbrBooks(); }
 
 void HomeActivity::onSettingsOpen() { activityManager.goToSettings(); }
 

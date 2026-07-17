@@ -15,6 +15,7 @@
 #include "CrossPointState.h"
 #include "FileBrowserActionActivity.h"
 #include "MappedInputManager.h"
+#include "TbrBooksStore.h"
 #include "activities/reader/EpubReaderActivity.h"
 #include "activities/util/ConfirmationActivity.h"
 #include "activities/util/OptionSelectionActivity.h"
@@ -450,6 +451,8 @@ void FileBrowserActivity::showDirectoryActionMenu(const std::string& entry, bool
                              case FileBrowserAction::DeleteCache:
                              case FileBrowserAction::DeleteStats:
                              case FileBrowserAction::ToggleCompleted:
+                             case FileBrowserAction::AddToTbr:
+                             case FileBrowserAction::RemoveFromTbr:
                              case FileBrowserAction::RemoveFromRecents:
                              case FileBrowserAction::PinFavorite:
                              case FileBrowserAction::UnpinFavorite:
@@ -617,6 +620,22 @@ void FileBrowserActivity::showFileActionMenu(const std::string& entry, bool igno
             }
             loadFiles();
             selectorIndex = entryCount() == 0 ? 0 : std::min(selectorIndex, entryCount() - 1);
+            requestUpdate(true);
+            return;
+          case FileBrowserAction::AddToTbr: {
+            const std::string title = getFileName(entry);
+            TBR_BOOKS.addBook(fullPath, title, "", "");
+            BookActions::drawToast(renderer, tr(STR_ADDED_TO_TBR));
+            delay(1000);
+            loadFiles();
+            requestUpdate(true);
+            return;
+          }
+          case FileBrowserAction::RemoveFromTbr:
+            TBR_BOOKS.removeByPath(fullPath);
+            BookActions::drawToast(renderer, tr(STR_REMOVED_FROM_TBR));
+            delay(1000);
+            loadFiles();
             requestUpdate(true);
             return;
           case FileBrowserAction::EpubRenderMode: {
